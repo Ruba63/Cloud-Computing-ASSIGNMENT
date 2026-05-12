@@ -1,11 +1,11 @@
 // =========================
-// TaskFlow JS Controller
+// TaskFlow JS Controller (Fixed)
 // =========================
 
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 let editId = null;
 
-// عناصر
+// عناصر الصفحة
 const grid = document.getElementById("tasks-grid");
 const modal = document.getElementById("modal-overlay");
 const form = document.getElementById("task-form");
@@ -21,19 +21,21 @@ const sortSelect = document.getElementById("sort-select");
 const emptyState = document.getElementById("empty-state");
 
 // =========================
-// فتح وإغلاق المودال
+// مودال
 // =========================
 function openModal(edit = false, task = null) {
   modal.classList.add("open");
 
   if (edit && task) {
     editId = task.id;
+
     document.getElementById("task-title").value = task.title;
     document.getElementById("task-desc").value = task.desc;
     document.getElementById("task-assigned").value = task.assigned;
     document.getElementById("task-due").value = task.due;
     document.getElementById("task-priority").value = task.priority;
     document.getElementById("task-status").value = task.status;
+
     document.getElementById("submit-btn").textContent = "Update Task";
   } else {
     editId = null;
@@ -47,7 +49,7 @@ function closeModal() {
 }
 
 // =========================
-// حفظ المهام
+// حفظ
 // =========================
 form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -74,7 +76,7 @@ form.addEventListener("submit", (e) => {
 });
 
 // =========================
-// عرض المهام
+// عرض الكروت
 // =========================
 function render() {
   const search = searchInput.value.toLowerCase();
@@ -103,29 +105,45 @@ function render() {
   filtered.forEach(task => {
     const card = document.createElement("div");
     card.className = "task-card";
+    card.setAttribute("data-priority", task.priority);
+
     card.innerHTML = `
       <div class="card-header">
         <div class="card-title">${task.title}</div>
+
         <div class="card-actions">
           <button class="icon-btn" onclick="editTask(${task.id})">✎</button>
           <button class="icon-btn delete" onclick="deleteTask(${task.id})">🗑</button>
         </div>
       </div>
 
-      <div class="card-description">${task.desc || ""}</div>
+      <div class="card-description">
+        ${task.desc || ""}
+      </div>
 
       <div class="card-meta">
         <span class="badge badge-${task.status.toLowerCase().replace(" ", "-")}">
+          <span class="badge-dot"></span>
           ${task.status}
         </span>
+
         <span class="badge badge-${task.priority.toLowerCase()}">
+          <span class="badge-dot"></span>
           ${task.priority}
         </span>
       </div>
 
       <div class="card-footer">
-        <div class="assigned-chip">${task.assigned}</div>
-        <div class="due-chip">${task.due || "-"}</div>
+        <div class="assigned-chip">
+          <div class="assigned-avatar">
+            ${(task.assigned || "").slice(0,2).toUpperCase()}
+          </div>
+          <span class="assigned-name">${task.assigned}</span>
+        </div>
+
+        <div class="due-chip ${isOverdue(task.due) ? "overdue" : ""}">
+          📅 ${task.due || "-"}
+        </div>
       </div>
     `;
 
@@ -137,16 +155,21 @@ function render() {
 }
 
 // =========================
-// تعديل
+// أدوات مساعدة
+// =========================
+function isOverdue(date) {
+  if (!date) return false;
+  return new Date(date) < new Date();
+}
+
+// =========================
+// تعديل وحذف
 // =========================
 window.editTask = (id) => {
   const task = tasks.find(t => t.id === id);
   openModal(true, task);
 };
 
-// =========================
-// حذف
-// =========================
 window.deleteTask = (id) => {
   tasks = tasks.filter(t => t.id !== id);
   render();
@@ -160,68 +183,33 @@ function save() {
 }
 
 // =========================
-// الفلاتر
+// فلترة وبحث
 // =========================
 searchInput.addEventListener("input", render);
 priorityFilter.addEventListener("change", render);
 sortSelect.addEventListener("change", render);
 
-// sidebar filters
-document.querySelectorAll(".nav-link[data-filter]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const status = btn.dataset.filter;
-    tasks = tasks.filter(t => !status || t.status === status);
-    render();
-  });
-});
-
-document.querySelectorAll(".filter-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-
-    const status = tab.dataset.status;
-    renderFiltered(status);
-  });
-});
-
-function renderFiltered(status) {
-  const search = searchInput.value.toLowerCase();
-
-  let filtered = tasks.filter(t => {
-    return (!status || t.status === status) &&
-           (!search || t.title.toLowerCase().includes(search));
-  });
-
-  grid.innerHTML = "";
-
-  filtered.forEach(task => {
-    const card = document.createElement("div");
-    card.className = "task-card";
-    card.innerHTML = `<div class="card-title">${task.title}</div>`;
-    grid.appendChild(card);
-  });
-}
+// =========================
+// أزرار المودال
+// =========================
+openBtn.onclick = () => openModal();
+closeBtn.onclick = closeModal;
+cancelBtn.onclick = closeModal;
 
 // =========================
-// الإحصائيات
+// إحصائيات
 // =========================
 function updateStats() {
   document.getElementById("stat-total").textContent = tasks.length;
   document.getElementById("stat-pending").textContent =
     tasks.filter(t => t.status === "Pending").length;
+
   document.getElementById("stat-progress").textContent =
     tasks.filter(t => t.status === "In Progress").length;
+
   document.getElementById("stat-completed").textContent =
     tasks.filter(t => t.status === "Completed").length;
 }
-
-// =========================
-// مودال controls
-// =========================
-openBtn.onclick = () => openModal();
-closeBtn.onclick = closeModal;
-cancelBtn.onclick = closeModal;
 
 // =========================
 // تشغيل أولي
